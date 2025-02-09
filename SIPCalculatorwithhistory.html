@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIP Calculator with History</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .calculator {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 350px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .result {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .result h2 {
+            margin-bottom: 10px;
+        }
+
+        .result p {
+            margin: 5px 0;
+            font-size: 1.1em;
+        }
+
+        .history {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .history h2 {
+            margin-bottom: 10px;
+        }
+
+        .history ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .history li {
+            background: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <h1>SIP Calculator</h1>
+        <div class="input-group">
+            <label for="monthlyInvestment">Monthly Investment (₹):</label>
+            <input type="number" id="monthlyInvestment" placeholder="Enter amount">
+        </div>
+        <div class="input-group">
+            <label for="annualRate">Expected Annual Return (%):</label>
+            <input type="number" id="annualRate" placeholder="Enter rate">
+        </div>
+        <div class="input-group">
+            <label for="investmentPeriod">Investment Period (Years):</label>
+            <input type="number" id="investmentPeriod" placeholder="Enter years">
+        </div>
+        <button onclick="calculateSIP()">Calculate</button>
+        <div class="result">
+            <h2>Result:</h2>
+            <p id="futureValue">Future Value: ₹0</p>
+            <p id="totalInvestment">Total Investment: ₹0</p>
+            <p id="estimatedReturn">Estimated Returns: ₹0</p>
+        </div>
+        <div class="history">
+            <h2>History (Last 24 Hours):</h2>
+            <ul id="historyList"></ul>
+        </div>
+    </div>
+
+    <script>
+        // Load history from localStorage
+        let history = JSON.parse(localStorage.getItem('sipHistory')) || [];
+
+        // Function to calculate SIP
+        function calculateSIP() {
+            // Get input values
+            const monthlyInvestment = parseFloat(document.getElementById('monthlyInvestment').value);
+            const annualRate = parseFloat(document.getElementById('annualRate').value);
+            const investmentPeriod = parseFloat(document.getElementById('investmentPeriod').value);
+
+            // Validate inputs
+            if (isNaN(monthlyInvestment) || isNaN(annualRate) || isNaN(investmentPeriod)) {
+                alert("Please enter valid numbers in all fields.");
+                return;
+            }
+
+            // Calculate SIP values
+            const monthlyRate = annualRate / 100 / 12;
+            const totalMonths = investmentPeriod * 12;
+
+            // Future Value Formula for SIP
+            const futureValue = monthlyInvestment * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate) * (1 + monthlyRate);
+
+            // Total Investment
+            const totalInvestment = monthlyInvestment * totalMonths;
+
+            // Estimated Returns
+            const estimatedReturn = futureValue - totalInvestment;
+
+            // Display results
+            document.getElementById('futureValue').innerText = `Future Value: ₹${futureValue.toFixed(2)}`;
+            document.getElementById('totalInvestment').innerText = `Total Investment: ₹${totalInvestment.toFixed(2)}`;
+            document.getElementById('estimatedReturn').innerText = `Estimated Returns: ₹${estimatedReturn.toFixed(2)}`;
+
+            // Add to history
+            const timestamp = new Date().toLocaleString();
+            const entry = {
+                timestamp,
+                monthlyInvestment,
+                annualRate,
+                investmentPeriod,
+                futureValue: futureValue.toFixed(2),
+                totalInvestment: totalInvestment.toFixed(2),
+                estimatedReturn: estimatedReturn.toFixed(2)
+            };
+            history.push(entry);
+
+            // Save history to localStorage
+            localStorage.setItem('sipHistory', JSON.stringify(history));
+
+            // Update history display
+            displayHistory();
+        }
+
+        // Function to display history
+        function displayHistory() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = ''; // Clear previous history
+
+            // Filter history to remove entries older than 24 hours
+            const now = new Date();
+            history = history.filter(entry => {
+                const entryTime = new Date(entry.timestamp);
+                return (now - entryTime) <= 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+            });
+
+            // Save filtered history back to localStorage
+            localStorage.setItem('sipHistory', JSON.stringify(history));
+
+            // Display each entry in the history
+            history.forEach(entry => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <strong>${entry.timestamp}</strong><br>
+                    Monthly Investment: ₹${entry.monthlyInvestment}<br>
+                    Annual Return: ${entry.annualRate}%<br>
+                    Investment Period: ${entry.investmentPeriod} years<br>
+                    Future Value: ₹${entry.futureValue}<br>
+                    Total Investment: ₹${entry.totalInvestment}<br>
+                    Estimated Returns: ₹${entry.estimatedReturn}
+                `;
+                historyList.appendChild(li);
+            });
+        }
+
+        // Display history when the page loads
+        displayHistory();
+    </script>
+</body>
+</html>
